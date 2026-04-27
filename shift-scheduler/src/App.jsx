@@ -375,33 +375,98 @@ const App = () => {
           </div>
         )}
 
+{/* --- 時數結算專業進化版 --- */}
         {activeTab === 'summary' && (
-          <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 animate-in fade-in duration-500 text-left">
-             <h3 className="text-3xl font-black text-slate-800 mb-12 flex items-center gap-4 text-left"><Calculator size={36} className="text-amber-500" /> {currentMonth} 月薪資結算表</h3>
-             <table className="w-full text-left">
+          <div className="bg-white rounded-[3rem] p-12 shadow-sm border border-slate-100 animate-in fade-in duration-500 text-left">
+             <div className="flex justify-between items-end mb-12">
+               <h3 className="text-3xl font-black text-slate-800 flex items-center gap-4 text-left">
+                 <Calculator size={36} className="text-amber-500" /> {currentMonth} 月營運績效與酬勞結算
+               </h3>
+               <div className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">
+                 NoahShop Management System
+               </div>
+             </div>
+
+             <table className="w-full text-left border-separate border-spacing-y-4">
                 <thead>
-                  <tr className="border-b text-xs font-black text-slate-400 uppercase tracking-widest text-left">
-                    <th className="pb-8 pl-6 text-left">員工成員</th>
-                    <th className="pb-8 text-left">累計總時數</th>
-                    <th className="pb-8 text-left">加班狀況</th>
-                    <th className="pb-8 text-right pr-6">預估津貼 (NT$)</th>
+                  <tr className="text-[11px] font-black text-slate-400 uppercase tracking-[0.15em] opacity-70">
+                    <th className="pb-4 pl-8">合作夥伴成員</th>
+                    <th className="pb-4">累計總時數</th>
+                    <th className="pb-4">時數結構 (基礎 + 協力精進)</th>
+                    <th className="pb-4 text-right pr-8">預估優化津貼 (NT$)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="text-left">
                   {leaderboard.map(emp => (
-                    <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors text-left">
-                      <td className="py-10 pl-6 text-left"><div className="text-3xl font-black text-slate-800">{emp.name}</div></td>
-                      <td className="py-10 text-left"><div className="text-3xl font-bold">{emp.totalHours}H</div></td>
-                      <td className="py-10 text-left">
-                        <span className={`px-6 py-2.5 rounded-2xl text-sm font-black border ${emp.overtime > 0 ? 'bg-indigo-50 text-indigo-600 border-indigo-100 shadow-sm' : 'bg-slate-100 text-slate-400'}`}>
-                          {emp.overtime > 0 ? `🔥 超額工時 + ${emp.overtime} H` : '工時正常'}
-                        </span>
+                    <tr key={emp.id} className="group transition-all hover:translate-x-1">
+                      {/* 成員姓名 */}
+                      <td className="py-6 pl-8 bg-slate-50/50 rounded-l-3xl border-y border-l border-slate-100">
+                        <div className="text-2xl font-black text-slate-800 tracking-tight">{emp.name}</div>
+                        <div className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter opacity-60">Professional Staff</div>
                       </td>
-                      <td className="py-10 text-right pr-6 font-mono font-black text-4xl text-slate-900">$ {emp.overtimePay.toLocaleString()}</td>
+
+                      {/* 總時數 */}
+                      <td className="py-6 bg-slate-50/50 border-y border-slate-100">
+                        <div className="text-2xl font-bold text-slate-800 font-mono">
+                          {emp.totalHours}<span className="text-sm ml-1 text-slate-400 font-sans">H</span>
+                        </div>
+                      </td>
+
+                      {/* 時數結構 (基礎 + 增值) */}
+                      <td className="py-6 bg-slate-50/50 border-y border-slate-100">
+                        <div className="flex items-center gap-2">
+                          {/* 基礎時數標籤 */}
+                          <div className="flex flex-col">
+                            <span className="text-[9px] font-black text-slate-400 uppercase mb-1">基礎時數</span>
+                            <div className="px-4 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 shadow-sm">
+                              {Math.min(emp.totalHours, settings.baseHours)} H
+                            </div>
+                          </div>
+                          
+                          <Plus size={12} className="text-slate-300 mt-5" />
+
+                          {/* 協力精進(加班)標籤 */}
+                          <div className="flex flex-col">
+                            <span className="text-[9px] font-black text-amber-500 uppercase mb-1">協力精進</span>
+                            <div className={`px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm transition-all ${
+                              emp.overtime > 0 
+                              ? 'bg-amber-500 text-white border border-amber-600' 
+                              : 'bg-slate-100 text-slate-300 border border-slate-200'
+                            }`}>
+                              {emp.overtime > 0 ? `+ ${emp.overtime} H` : '0 H'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* 津貼金額 */}
+                      <td className="py-6 text-right pr-8 bg-slate-50/50 rounded-r-3xl border-y border-r border-slate-100">
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] font-black text-slate-400 uppercase mb-1">Total Reward</span>
+                          <div className={`text-4xl font-mono font-black tracking-tighter ${emp.overtimePay > 0 ? 'text-slate-900' : 'text-slate-300'}`}>
+                            <span className="text-xl mr-1 text-slate-400 font-sans">$</span>
+                            {emp.overtimePay.toLocaleString()}
+                          </div>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
              </table>
+
+             {/* 底部說明 */}
+             <div className="mt-12 p-6 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex items-start gap-4">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
+                   <Sparkles size={20}/>
+                </div>
+                <div>
+                   <h4 className="text-sm font-black text-indigo-900 uppercase tracking-widest mb-1">結算說明</h4>
+                   <p className="text-xs font-bold text-indigo-700/70 leading-relaxed">
+                     本表根據每月基準 {settings.baseHours} 小時進行結算。「協力精進」時數代表您對商行營運的額外付出，
+                     我們深感榮幸並給予「優化津貼」作為回饋。NoahShop 感謝每一位合作夥伴的專業貢獻。
+                   </p>
+                </div>
+             </div>
           </div>
         )}
       </main>
