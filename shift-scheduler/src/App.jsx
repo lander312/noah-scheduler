@@ -244,60 +244,74 @@ const App = () => {
                 </div>
               </div>
               
-              {/* 表格 */}
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-sm text-left border-collapse">
-                  <thead>
-                    <tr className="bg-black/[0.02]">
-                      <th className={`sticky left-0 bg-white/80 backdrop-blur-md z-20 p-2 md:p-3 text-xs md:text-sm font-semibold opacity-90 border-b border-r ${theme.border} min-w-[80px] md:min-w-[100px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] whitespace-nowrap`}>
-                        員工姓名
+{/* 表格 - 橫向滑動與點擊流暢度優化版 */}
+            <div className="overflow-x-auto custom-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <table className="w-full text-sm text-left border-separate border-spacing-0">
+                <thead>
+                  <tr className="bg-black/[0.02]">
+                    <th className={`sticky left-0 bg-white z-30 p-2 md:p-3 text-xs md:text-sm font-semibold border-b border-r ${theme.border} min-w-[85px] md:min-w-[100px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap`}>
+                      員工姓名
+                    </th>
+                    {Array.from({ length: daysInMonth }).map((_, i) => (
+                      <th key={i} className={`p-1 md:p-1.5 text-center font-medium text-xs md:text-sm opacity-80 border-b ${theme.border} min-w-[36px] sm:min-w-[40px]`}>
+                        {i + 1}
                       </th>
-                      {Array.from({ length: daysInMonth }).map((_, i) => (
-                        <th key={i} className={`p-1 md:p-1.5 text-center font-medium text-xs md:text-sm opacity-80 border-b ${theme.border} min-w-[34px] sm:min-w-[42px]`}>
-                          {i + 1}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaderboard.map((emp, index) => (
-                      <tr key={emp.id} className={`group hover:bg-black/[0.02] transition-colors border-b ${theme.border} last:border-0`}>
-                        <td className={`sticky left-0 ${theme.cardBg} group-hover:brightness-95 z-10 p-2 md:p-3 text-xs md:text-sm font-medium border-r ${theme.border} shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] transition-colors whitespace-nowrap`}>
-                          <div className="flex items-center gap-1.5">
-                            {/* 溫和的榮譽獎牌標示 */}
-                            {index === 0 && <span className="text-sm">🥇</span>}
-                            {index === 1 && <span className="text-sm opacity-80">🥈</span>}
-                            {index === 2 && <span className="text-sm opacity-60">🥉</span>}
-                            <span className={index < 3 ? 'font-semibold' : ''}>{emp.name}</span>
-                          </div>
-                        </td>
-                        {Array.from({ length: daysInMonth }).map((_, i) => {
-                          const day = i + 1;
-                          const dateKey = getDateKey(day);
-                          const shiftId = emp.schedule[dateKey];
-                          const shift = shiftTypes.find(s => s.id === shiftId);
-                          const shiftColor = shift ? theme.colors[shift.colorIndex % theme.colors.length] : '';
-                          
-                          return (
-                            <td key={day} className={`p-[2px] sm:p-1 border-x border-transparent hover:${theme.border}`}>
-                              <button onClick={() => quickAssignMode !== null && setSchedule(emp.id, dateKey, quickAssignMode === 'clear' ? null : quickAssignMode)} className={`h-10 sm:h-11 w-full rounded-lg flex flex-col items-center justify-center gap-[2px] pt-1 pb-0.5 transition-all duration-200 active:scale-90 overflow-hidden ${shift ? `${shiftColor} text-white shadow-sm hover:brightness-110` : 'bg-black/[0.03] text-transparent hover:bg-black/10'} ${quickAssignMode !== null ? 'cursor-crosshair' : 'cursor-pointer'}`}>
-                                {shift && (
-                                  <>
-                                    <span className="text-sm sm:text-base leading-none">{shift.emoji}</span>
-                                    <span className="text-[9px] opacity-95 hidden lg:block tracking-tighter whitespace-nowrap scale-[0.85]">
-                                      {shift.name.substring(0,2)}
-                                    </span>
-                                  </>
-                                )}
-                              </button>
-                            </td>
-                          );
-                        })}
-                      </tr>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaderboard.map((emp, index) => (
+                    <tr key={emp.id} className="hover:bg-black/[0.01]">
+                      <td className={`sticky left-0 bg-white z-20 p-2 md:p-3 text-xs md:text-sm font-medium border-r border-b ${theme.border} shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap`}>
+                        <div className="flex items-center gap-1.5">
+                          {index === 0 && <span className="text-sm">🥇</span>}
+                          {index === 1 && <span className="text-sm">🥈</span>}
+                          {index === 2 && <span className="text-sm">🥉</span>}
+                          <span className={index < 3 ? 'font-semibold' : ''}>{emp.name}</span>
+                        </div>
+                      </td>
+                      {Array.from({ length: daysInMonth }).map((_, i) => {
+                        const day = i + 1;
+                        const dateKey = getDateKey(day);
+                        const shiftId = emp.schedule[dateKey];
+                        const shift = shiftTypes.find(s => s.id === shiftId);
+                        const shiftColor = shift ? theme.colors[shift.colorIndex % theme.colors.length] : '';
+                        
+                        return (
+                          <td key={day} className={`p-[1px] border-b ${theme.border}`}>
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                // 核心優化：防止瀏覽器預設跳動
+                                if (quickAssignMode !== null) {
+                                  setSchedule(emp.id, dateKey, quickAssignMode === 'clear' ? null : quickAssignMode);
+                                } else {
+                                  setActiveCell({ empId: emp.id, dateKey });
+                                }
+                              }}
+                              className={`h-10 w-full rounded-md flex flex-col items-center justify-center transition-none ${
+                                shift 
+                                  ? `${shiftColor} text-white shadow-sm` 
+                                  : 'bg-black/[0.03] hover:bg-black/10'
+                              } ${quickAssignMode !== null ? 'cursor-crosshair' : 'cursor-pointer'}`}
+                            >
+                              {shift && (
+                                <>
+                                  <span className="text-sm sm:text-base leading-none">{shift.emoji}</span>
+                                  <span className="text-[9px] hidden lg:block scale-90 whitespace-nowrap">
+                                    {shift.name.substring(0,2)}
+                                  </span>
+                                </>
+                              )}
+                            </button>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
               <div className="p-2 text-center text-[10px] opacity-40 bg-black/5">
                 提示：若畫面無法完全顯示，您可以按住 Shift 鍵並滑動滾輪進行橫向拖曳。
               </div>
