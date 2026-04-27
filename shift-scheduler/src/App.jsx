@@ -222,8 +222,9 @@ const App = () => {
               </div>
             </div>
 
-            {/* 排班表主體 */}
-            <div className={`bg-white rounded-[2.5rem] shadow-sm border ${theme.border} overflow-hidden print-card`}>
+{/* --- 排班面板 (專業數據版：移除失敗大圓角，強化直覺反饋) --- */}
+            <div className={`bg-white rounded-3xl shadow-sm border ${theme.border} overflow-hidden print-card`}>
+              {/* 工具列 no-print */}
               <div className="p-5 border-b flex flex-wrap items-center justify-between gap-6 bg-black/[0.01] no-print">
                 <div className="flex items-center bg-white rounded-xl shadow-sm border p-1">
                   <button onClick={() => setCurrentDate(new Date(currentYear, currentMonth-2, 1))} className="p-2 hover:bg-slate-50 text-slate-400"><ChevronLeft size={20}/></button>
@@ -242,18 +243,20 @@ const App = () => {
                       onClick={() => setQuickAssignMode(quickAssignMode === s.id ? null : s.id)}
                       className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${quickAssignMode === s.id ? `${theme.colors[s.colorIndex % 5]} text-white shadow-lg scale-105` : 'hover:bg-slate-50 text-slate-500 border border-transparent hover:border-slate-200'}`}
                     >
-                      <span className="text-lg">{s.emoji}</span> {s.name}
+                      <span className="text-xl">{s.emoji}</span> {s.name}
                     </button>
                   ))}
                   <button onClick={() => setQuickAssignMode(quickAssignMode === 'clear' ? null : 'clear')} className={`px-4 py-2 rounded-xl text-xs font-black ${quickAssignMode === 'clear' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-300 hover:bg-rose-50'}`}><Trash2 size={18}/></button>
                 </div>
               </div>
 
+              {/* 表格主體 */}
               <div className="overflow-x-auto scrollbar-hide">
                 <table className="w-full border-separate border-spacing-0 text-left print-table">
                   <thead>
                     <tr className="bg-slate-50/50">
-                      <th className="sticky left-0 top-0 z-40 bg-white/95 backdrop-blur-md p-4 text-[10px] font-black uppercase text-slate-400 border-b border-r min-w-[160px] print-name">成員 (點選後批量排班)</th>
+                      {/* 人名欄位縮小，移除多餘裝飾 */}
+                      <th className="sticky left-0 top-0 z-40 bg-white p-4 text-[10px] font-black uppercase text-slate-400 border-b border-r min-w-[120px] text-left print-name">成員名冊 (⚡填滿)</th>
                       {Array.from({ length: daysInMonth }).map((_, i) => (
                         <th key={i} className="top-0 p-2 text-[10px] font-black border-b text-center min-w-[38px] text-slate-400">{i + 1}</th>
                       ))}
@@ -261,16 +264,37 @@ const App = () => {
                   </thead>
                   <tbody>
                     {leaderboard.map((emp) => (
-                      <tr key={emp.id} className={`group transition-colors ${selectedEmpForBatch === emp.id ? 'bg-indigo-50/50' : 'hover:bg-slate-50/30'}`}>
-                        <td className={`sticky left-0 z-30 bg-white/95 backdrop-blur-md p-4 border-r border-b shadow-[4px_0_10px_rgba(0,0,0,0.02)] print-name cursor-pointer ${selectedEmpForBatch === emp.id ? 'ring-2 ring-inset ring-indigo-500' : ''}`} onClick={() => setSelectedEmpForBatch(emp.id)}>
-                          <div className="flex flex-col gap-1">
-                            <div className={`font-black text-xl tracking-tight transition-colors ${selectedEmpForBatch === emp.id ? 'text-indigo-600' : 'text-slate-700'}`}>{emp.name}</div>
-                            <div className="flex items-center gap-2">
+                      <tr 
+                        key={emp.id} 
+                        className={`group transition-colors ${selectedEmpForBatch === emp.id ? 'bg-black/[0.02]' : 'hover:bg-slate-50/30'}`}
+                      >
+                        {/* 專業人名名片：移除大圓角，採用左側條反饋 */}
+                        <td 
+                          className={`sticky left-0 z-30 bg-white p-4 border-r border-b shadow-[4px_0_10px_rgba(0,0,0,0.02)] print-name cursor-pointer relative ${selectedEmpForBatch === emp.id ? 'bg-slate-50' : ''}`} 
+                          onClick={() => setSelectedEmpForBatch(emp.id)}
+                        >
+                          {/* 選中時的左側強調色條 - 不佔空間，直覺貼心 */}
+                          {selectedEmpForBatch === emp.id && (
+                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${theme.accent} rounded-r`}></div>
+                          )}
+                          
+                          <div className="flex flex-col gap-1 pl-2 text-left">
+                            <div className={`font-black text-2xl tracking-tight text-left transition-colors ${selectedEmpForBatch === emp.id ? theme.accentText : 'text-slate-700'}`}>
+                              {emp.name}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-left no-print">
                               <span className="text-[9px] font-bold text-slate-400 uppercase px-1.5 py-0.5 bg-slate-100 rounded">ID:{emp.id.slice(-3)}</span>
-                              <button onClick={(e) => { e.stopPropagation(); fillMonth(emp.id, quickAssignMode); }} className="no-print text-[9px] font-black text-indigo-500 hover:underline">⚡全月填滿</button>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); fillMonth(emp.id, quickAssignMode); }} 
+                                className={`text-[10px] font-black transition-colors ${selectedEmpForBatch === emp.id ? theme.accentText : 'text-indigo-500 hover:text-indigo-600'}`}
+                              >
+                                ⚡填滿
+                              </button>
                             </div>
                           </div>
                         </td>
+                        
+                        {/* 排班格 - 上圖下文粗體 (維持原樣，縮排間距) */}
                         {Array.from({ length: daysInMonth }).map((_, i) => {
                           const day = i + 1;
                           const k = getDateKey(day);
@@ -280,12 +304,13 @@ const App = () => {
                             <td key={day} className="p-0 border-b border-r border-slate-50 transition-colors">
                               <button 
                                 onClick={() => quickAssignMode && setSchedule(emp.id, k, quickAssignMode === 'clear' ? null : quickAssignMode)}
-                                className={`w-full h-14 flex flex-col items-center justify-center gap-0.5 transition-all ${s ? theme.colors[s.colorIndex % 5] + " text-white shadow-inner" : "bg-transparent hover:bg-black/[0.02] text-slate-100"}`}
+                                className={`w-full h-14 flex flex-col items-center justify-center gap-0 transition-all ${s ? theme.colors[s.colorIndex % 5] + " text-white shadow-inner" : "bg-transparent hover:bg-black/[0.02] text-slate-100"}`}
                               >
                                 {s ? (
                                   <>
                                     <span className="text-xl leading-none emoji-print">{s.emoji}</span>
-                                    <span className="text-[9px] font-black uppercase leading-none">{s.name}</span>
+                                    {/* 下方中文加粗，文字稍微縮小保持格子精緻 */}
+                                    <span className="text-[9px] font-bold uppercase leading-tight font-black">{s.name}</span>
                                   </>
                                 ) : '·'}
                               </button>
