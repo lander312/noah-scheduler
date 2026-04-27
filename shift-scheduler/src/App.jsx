@@ -4,7 +4,7 @@ import {
   ChevronDown, ChevronLeft, ChevronRight, Trophy, Award, Target, Zap, TrendingUp, UserPlus, Sparkles, Printer
 } from 'lucide-react';
 
-// --- 全局主題定義 (同步背景與強調色) ---
+// --- 主題配色定義 ---
 const THEMES = {
   morandi: {
     name: '莫蘭迪 (優雅)',
@@ -46,24 +46,35 @@ const App = () => {
   const [quickAssignMode, setQuickAssignMode] = useState(null);
   const [newEmpName, setNewEmpName] = useState('');
   
-  const theme = THEMES[themeId];
-
+  // 班別設定狀態
   const [shiftTypes, setShiftTypes] = useState([
-    { id: '1', name: '全班', emoji: '🌞', hours: 8, colorIndex: 0 },
-    { id: '2', name: '午班', emoji: '🌤️', hours: 4, colorIndex: 1 },
-    { id: '3', name: '晚班', emoji: '🌙', hours: 4, colorIndex: 2 },
-    { id: '4', name: '休假', emoji: '🌴', hours: 0, colorIndex: 4 },
+    { id: '1', name: '全班', emoji: '🌞', start: '09:00', end: '18:00', hours: 9, colorIndex: 0 },
+    { id: '2', name: '午班', emoji: '🌤️', start: '12:00', end: '17:00', hours: 5, colorIndex: 1 },
+    { id: '3', name: '晚班', emoji: '🌙', start: '18:00', end: '22:00', hours: 4, colorIndex: 2 },
+    { id: '4', name: '休假', emoji: '🌴', start: '00:00', end: '00:00', hours: 0, colorIndex: 4 },
   ]);
+  const [newShift, setNewShift] = useState({ name: '', emoji: '✨', start: '09:00', end: '18:00' });
 
   const [employees, setEmployees] = useState([
     { id: '1', name: '諾亞', schedule: {} },
     { id: '2', name: '樂寶', schedule: {} },
   ]);
 
+  const theme = THEMES[themeId];
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth() + 1;
   const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
   const getDateKey = (day) => `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+  // 計算兩個時間點之間的時數
+  const calculateHours = (start, end) => {
+    if (start === end) return 0;
+    const [sH, sM] = start.split(':').map(Number);
+    const [eH, eM] = end.split(':').map(Number);
+    let diff = (eH * 60 + eM) - (sH * 60 + sM);
+    if (diff < 0) diff += 24 * 60; // 跨夜處理
+    return parseFloat((diff / 60).toFixed(1));
+  };
 
   const setSchedule = useCallback((empId, dateKey, shiftId) => {
     setEmployees(prev => prev.map(emp => {
@@ -110,8 +121,6 @@ const App = () => {
 
   const leaderboard = useMemo(() => [...stats].sort((a, b) => b.totalHours - a.totalHours), [stats]);
 
-  const handlePrint = () => window.print();
-
   return (
     <div className={`min-h-screen ${theme.bg} text-slate-800 p-4 md:p-8 transition-colors duration-700`}>
       <style>{`
@@ -131,7 +140,7 @@ const App = () => {
           <div className={`bg-white w-14 h-14 rounded-2xl shadow-xl flex items-center justify-center text-3xl border ${theme.border}`}>🗓️</div>
           <div>
             <h1 className="text-3xl font-black tracking-tight tracking-tight text-slate-800">NOAH <span className="font-light text-slate-400 italic">v2026</span></h1>
-            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">智能排班與時數算力中心</p>
+            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest text-left">智能排班與時數算力中心</p>
           </div>
         </div>
         <nav className={`flex bg-white p-1.5 rounded-2xl shadow-sm border ${theme.border}`}>
@@ -167,21 +176,21 @@ const App = () => {
                 <div className="text-5xl font-black">{settings.baseHours}<span className="text-lg font-light ml-2 opacity-60">Hours</span></div>
               </div>
               <div className={`bg-white rounded-[2.5rem] p-8 shadow-sm border ${theme.border} flex flex-col justify-center`}>
-                <span className="text-slate-400 text-xs font-black uppercase mb-2">成員總數統計</span>
-                <div className="text-5xl font-black text-slate-800">{employees.length}<span className="text-lg font-light ml-2 text-slate-400">Members</span></div>
+                <span className="text-slate-400 text-xs font-black uppercase mb-2 text-left">成員總數統計</span>
+                <div className="text-5xl font-black text-slate-800 text-left">{employees.length}<span className="text-lg font-light ml-2 text-slate-400">Members</span></div>
               </div>
             </div>
 
             {/* 排班面板本體 */}
             <div className={`bg-white rounded-[3rem] shadow-sm border ${theme.border} overflow-hidden print-card`}>
               <div className="p-8 border-b flex flex-wrap items-center justify-between gap-8 bg-black/[0.01] no-print">
-                <div className="flex items-center bg-white rounded-2xl shadow-sm border p-1.5">
+                <div className="flex items-center bg-white rounded-xl shadow-sm border p-1.5">
                   <button onClick={() => setCurrentDate(new Date(currentYear, currentMonth-2, 1))} className="p-3 hover:bg-slate-50 text-slate-400"><ChevronLeft size={24}/></button>
                   <div className="px-10 text-2xl font-black text-slate-700">{currentYear} / {String(currentMonth).padStart(2,'0')}</div>
                   <button onClick={() => setCurrentDate(new Date(currentYear, currentMonth, 1))} className="p-3 hover:bg-slate-50 text-slate-400"><ChevronRight size={24}/></button>
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-3 bg-slate-100 rounded-xl text-sm font-black hover:bg-slate-200 transition-all">
+                  <button onClick={() => window.print()} className="flex items-center gap-2 px-6 py-3 bg-slate-100 rounded-xl text-sm font-black hover:bg-slate-200 transition-all">
                     <Printer size={18}/> 打印 A4 報表
                   </button>
                   <div className="flex flex-wrap gap-3 items-center bg-white p-2 rounded-2xl border shadow-inner">
@@ -215,8 +224,8 @@ const App = () => {
                   </thead>
                   <tbody>
                     {leaderboard.map((emp) => (
-                      <tr key={emp.id} className="group transition-colors hover:bg-slate-50/30">
-                        <td className="sticky left-0 z-30 bg-white/95 backdrop-blur-md p-6 border-r border-b shadow-[5px_0_15px_rgba(0,0,0,0.03)]">
+                      <tr key={emp.id} className="group transition-colors hover:bg-slate-50/30 text-left">
+                        <td className="sticky left-0 z-30 bg-white/95 backdrop-blur-md p-6 border-r border-b shadow-[5px_0_15px_rgba(0,0,0,0.03)] text-left">
                           <div className="flex flex-col gap-3">
                             <div className="font-black text-2xl text-slate-800 tracking-tight">{emp.name}</div>
                             <button 
@@ -252,118 +261,155 @@ const App = () => {
           </>
         )}
 
+        {/* --- 系統設定 --- */}
+        {activeTab === 'settings' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-in fade-in duration-500">
+            <div className="space-y-8">
+              {/* 視覺化主題選擇器 */}
+              <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+                <h3 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3"><Palette className={theme.accentText}/> 佈景主題切換</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
+                  {Object.entries(THEMES).map(([id, t]) => (
+                    <button key={id} onClick={() => setThemeId(id)} className={`relative p-5 rounded-[2rem] border-4 transition-all duration-300 flex flex-col items-start gap-4 ${themeId === id ? 'border-slate-800 bg-white shadow-xl scale-105' : 'border-white bg-slate-50 opacity-70 hover:opacity-100'}`}>
+                      <div className="flex gap-2">
+                        <div className={`w-8 h-8 rounded-full ${t.accent} shadow-inner`}></div>
+                        <div className={`w-8 h-8 rounded-full ${t.colors[1]} opacity-60`}></div>
+                      </div>
+                      <span className="text-base font-black text-slate-800 leading-tight">{t.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 班別管理 (時間設定回歸) */}
+              <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+                <h3 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3"><Clock className="text-orange-500"/> 班別時數設定</h3>
+                <div className="flex flex-col gap-4 mb-8 bg-slate-50 p-6 rounded-[2rem]">
+                   <div className="grid grid-cols-2 gap-3">
+                      <input type="text" value={newShift.name} onChange={e => setNewShift({...newShift, name: e.target.value})} placeholder="班別名稱 (如:全班)" className="bg-white px-4 py-3 rounded-xl font-bold" />
+                      <input type="text" value={newShift.emoji} onChange={e => setNewShift({...newShift, emoji: e.target.value})} placeholder="圖示 (如:🌞)" className="bg-white px-4 py-3 rounded-xl font-bold" />
+                   </div>
+                   <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-black text-slate-400 px-2 uppercase underline underline-offset-4 decoration-slate-200">開始時間</label>
+                        <input type="time" value={newShift.start} onChange={e => setNewShift({...newShift, start: e.target.value})} className="bg-white px-4 py-3 rounded-xl font-black" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-black text-slate-400 px-2 uppercase underline underline-offset-4 decoration-slate-200">結束時間</label>
+                        <input type="time" value={newShift.end} onChange={e => setNewShift({...newShift, end: e.target.value})} className="bg-white px-4 py-3 rounded-xl font-black" />
+                      </div>
+                   </div>
+                   <button 
+                     onClick={() => {
+                       if(!newShift.name) return;
+                       const hrs = calculateHours(newShift.start, newShift.end);
+                       setShiftTypes([...shiftTypes, { ...newShift, id: Date.now().toString(), hours: hrs, colorIndex: shiftTypes.length }]);
+                       setNewShift({ name: '', emoji: '✨', start: '09:00', end: '18:00' });
+                     }}
+                     className={`${theme.navActive} text-white py-4 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-all`}
+                   >
+                     新增班別 (自動計算時數)
+                   </button>
+                </div>
+                <div className="space-y-3">
+                  {shiftTypes.map(s => (
+                    <div key={s.id} className="flex justify-between items-center p-5 bg-slate-50 rounded-2xl group border border-transparent hover:border-slate-200">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{s.emoji}</span>
+                        <div>
+                          <div className="font-black text-slate-700">{s.name}</div>
+                          <div className="text-[10px] font-bold text-slate-400">{s.start} - {s.end} ({s.hours}H)</div>
+                        </div>
+                      </div>
+                      <button onClick={() => setShiftTypes(shiftTypes.filter(x => x.id !== s.id))} className="text-slate-300 hover:text-rose-500"><Trash2 size={20}/></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-8">
+               {/* 營運基準 */}
+               <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+                <h3 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3"><Target className="text-indigo-500"/> 營運計算基準</h3>
+                <div className="space-y-8">
+                  <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 shadow-inner">
+                    <label className="text-xl font-black text-slate-500 uppercase mb-4 block underline underline-offset-8 decoration-slate-200 text-left">每月基準工時設定</label>
+                    <input type="number" value={settings.baseHours} onChange={e => setSettings({...settings, baseHours: Number(e.target.value)})} className="w-full bg-transparent text-5xl font-black text-slate-800 focus:outline-none" />
+                  </div>
+                  <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 shadow-inner">
+                    <label className="text-xl font-black text-slate-500 uppercase mb-4 block underline underline-offset-8 decoration-slate-200 text-left">加班費率設定 (NT$)</label>
+                    <input type="number" value={settings.overtimeRate} onChange={e => setSettings({...settings, overtimeRate: Number(e.target.value)})} className="w-full bg-transparent text-5xl font-black text-slate-800 focus:outline-none" />
+                  </div>
+                </div>
+               </div>
+
+               {/* 人員管理 */}
+               <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+                <h3 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3"><UserPlus className="text-emerald-500"/> 員工名錄管理</h3>
+                <div className="flex gap-4 mb-8">
+                  <input type="text" value={newEmpName} onChange={e => setNewEmpName(e.target.value)} placeholder="新員工姓名..." className="flex-1 bg-slate-50 px-8 py-5 rounded-2xl text-xl font-bold focus:outline-none" />
+                  <button onClick={() => { if(!newEmpName)return; setEmployees([...employees,{id:Date.now().toString(),name:newEmpName,schedule:{}}]);setNewEmpName(''); }} className={`${theme.navActive} text-white px-10 rounded-2xl font-black text-xl`}>新增</button>
+                </div>
+                <div className="space-y-3">
+                  {employees.map(e => (
+                    <div key={e.id} className="flex justify-between items-center p-6 bg-slate-50 rounded-2xl group border border-transparent hover:border-slate-200">
+                      <span className="font-black text-2xl text-slate-700">{e.name}</span>
+                      <button onClick={() => setEmployees(employees.filter(x => x.id !== e.id))} className="text-slate-300 hover:text-rose-500"><Trash2 size={24}/></button>
+                    </div>
+                  ))}
+                </div>
+               </div>
+            </div>
+          </div>
+        )}
+
         {/* --- 時數結算 --- */}
         {activeTab === 'summary' && (
-          <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 animate-in fade-in duration-500">
-             <h3 className="text-3xl font-black text-slate-800 mb-12 flex items-center gap-4">
-               <Calculator size={36} className="text-amber-500" /> {currentMonth} 月榮譽與薪資結算表
-             </h3>
+          <div className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100">
+             <h3 className="text-3xl font-black text-slate-800 mb-10 text-left">薪資結算總表</h3>
              <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-slate-100 text-xs font-black text-slate-400 uppercase tracking-widest">
-                    <th className="pb-8 pl-6">員工成員</th>
-                    <th className="pb-8">本月總工時</th>
-                    <th className="pb-8">加班狀況</th>
-                    <th className="pb-8 text-right pr-6">加班津貼 (NT$)</th>
+                  <tr className="border-b text-xs font-black text-slate-400 uppercase tracking-widest text-left">
+                    <th className="pb-6 pl-4 text-left">成員</th>
+                    <th className="pb-6 text-left">總工時</th>
+                    <th className="pb-6 text-left">加班狀況</th>
+                    <th className="pb-6 text-right pr-4">加班津貼</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y text-left">
                   {leaderboard.map(emp => (
-                    <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-10 pl-6"><div className="text-3xl font-black text-slate-800">{emp.name}</div></td>
-                      <td className="py-10"><div className="text-3xl font-bold">{emp.totalHours}<span className="text-base ml-1 opacity-40 font-normal">h</span></div></td>
-                      <td className="py-10">
-                        <span className={`px-6 py-2.5 rounded-2xl text-sm font-black border ${emp.overtime > 0 ? 'bg-indigo-50 text-indigo-600 border-indigo-100 shadow-sm' : 'bg-slate-100 text-slate-400'}`}>
-                          {emp.overtime > 0 ? `🔥 加成 + ${emp.overtime} H` : '工時正常'}
+                    <tr key={emp.id} className="hover:bg-slate-50 transition-colors text-left">
+                      <td className="py-8 pl-4 font-black text-2xl text-left">{emp.name}</td>
+                      <td className="py-8 text-2xl font-bold text-left">{emp.totalHours}H</td>
+                      <td className="py-8 text-left">
+                        <span className={`px-4 py-2 rounded-xl text-sm font-black ${emp.overtime > 0 ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-slate-100 text-slate-400'}`}>
+                          {emp.overtime > 0 ? `+${emp.overtime}H` : '正常'}
                         </span>
                       </td>
-                      <td className="py-10 text-right pr-6 font-mono font-black text-4xl text-slate-900">$ {emp.overtimePay.toLocaleString()}</td>
+                      <td className="py-8 text-right pr-4 font-black text-3xl text-slate-900">$ {emp.overtimePay.toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
              </table>
           </div>
         )}
-
-        {/* --- 系統設定 (視覺化主題選擇器) --- */}
-        {activeTab === 'settings' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-in fade-in duration-500">
-            <div className="space-y-8">
-              <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
-                <h3 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3"><Palette className={theme.accentText}/> 佈景主題切換</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
-                  {Object.entries(THEMES).map(([id, t]) => (
-                    <button 
-                      key={id} 
-                      onClick={() => setThemeId(id)} 
-                      className={`relative p-5 rounded-[2rem] border-4 transition-all duration-300 flex flex-col items-start gap-4 ${
-                        themeId === id ? 'border-slate-800 bg-white shadow-xl scale-105' : 'border-white bg-slate-50 opacity-70 hover:opacity-100'
-                      }`}
-                    >
-                      <div className="flex gap-2">
-                        <div className={`w-8 h-8 rounded-full ${t.accent} shadow-inner`}></div>
-                        <div className={`w-8 h-8 rounded-full ${t.colors[1]} opacity-60`}></div>
-                        <div className={`w-8 h-8 rounded-full ${t.bg} border border-slate-100`}></div>
-                      </div>
-                      <div className="flex flex-col items-start">
-                        <span className="text-[10px] font-black uppercase text-slate-300">Style</span>
-                        <span className="text-base font-black text-slate-800 leading-tight">{t.name}</span>
-                      </div>
-                      {themeId === id && <div className="absolute top-4 right-4 bg-slate-800 text-white rounded-full p-1"><Zap size={10} fill="currentColor"/></div>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
-                <h3 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3"><Target className="text-indigo-500"/> 營運計算基準</h3>
-                <div className="space-y-8">
-                  <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 shadow-inner">
-                    <label className="text-xl font-black text-slate-500 uppercase mb-4 block underline underline-offset-8 decoration-slate-200">每月基準工時設定 (小時)</label>
-                    <input type="number" value={settings.baseHours} onChange={e => setSettings({...settings, baseHours: Number(e.target.value)})} className="w-full bg-transparent text-5xl font-black text-slate-800 focus:outline-none" />
-                  </div>
-                  <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 shadow-inner">
-                    <label className="text-xl font-black text-slate-500 uppercase mb-4 block underline underline-offset-8 decoration-slate-200">加班費率設定 (NT$)</label>
-                    <input type="number" value={settings.overtimeRate} onChange={e => setSettings({...settings, overtimeRate: Number(e.target.value)})} className="w-full bg-transparent text-5xl font-black text-slate-800 focus:outline-none" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
-              <h3 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3"><UserPlus className="text-emerald-500"/> 員工名錄管理</h3>
-              <div className="flex gap-4 mb-8">
-                <input type="text" value={newEmpName} onChange={e => setNewEmpName(e.target.value)} placeholder="新員工姓名..." className="flex-1 bg-slate-50 px-8 py-5 rounded-2xl text-xl font-bold focus:outline-none focus:ring-4 ring-slate-100 transition-all" />
-                <button onClick={() => { if(!newEmpName)return; setEmployees([...employees,{id:Date.now().toString(),name:newEmpName,schedule:{}}]);setNewEmpName(''); }} className={`${theme.navActive} text-white px-10 rounded-2xl font-black text-xl hover:shadow-xl active:scale-95 transition-all`}>新增</button>
-              </div>
-              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                {employees.map(e => (
-                  <div key={e.id} className="flex justify-between items-center p-6 bg-slate-50 rounded-2xl group transition-all hover:bg-white hover:shadow-md border border-transparent hover:border-slate-200">
-                    <span className="font-black text-2xl text-slate-700">{e.name}</span>
-                    <button onClick={() => setEmployees(employees.filter(x => x.id !== e.id))} className="text-slate-300 hover:text-rose-500 p-2"><Trash2 size={28}/></button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </main>
 
-      {/* Footer 品牌行銷與官網連結 */}
       <footer className="max-w-[1600px] mx-auto mt-20 pt-10 border-t border-slate-200 pb-12 no-print">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex flex-col items-center md:items-start gap-2">
-            <div className="flex items-center gap-3">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6 text-left">
+          <div className="flex flex-col items-center md:items-start gap-2 text-left">
+            <div className="flex items-center gap-3 text-left">
               <span className={`px-2 py-0.5 ${theme.navActive} text-white text-[10px] font-black rounded-md tracking-widest uppercase`}>核心價值</span>
               <span className="text-xs font-bold text-slate-500 tracking-widest">精湛工藝 · 數位管理 · 卓越生活</span>
             </div>
-            <a href="https://noah999.com.tw" target="_blank" rel="noopener noreferrer" className="group flex items-center gap-1.5">
+            <a href="https://noah999.com" target="_blank" rel="noopener noreferrer" className="group flex items-center gap-1.5 text-left">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">© 2026</span>
               <span className="text-[10px] font-black text-slate-700 uppercase tracking-[0.2em] group-hover:text-indigo-600 transition-colors decoration-slate-300 underline-offset-4 group-hover:underline">NOAHSHOP SYSTEM.</span>
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">ALL RIGHTS RESERVED.</span>
             </a>
           </div>
-          <a href="https://noah999.com.tw" target="_blank" rel="noopener noreferrer" className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all shadow-sm`}>瀏覽官方網站 →</a>
+          <a href="https://noah999.com" target="_blank" rel="noopener noreferrer" className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all shadow-sm`}>瀏覽官方網站 →</a>
         </div>
       </footer>
     </div>
